@@ -61,4 +61,4 @@ git remote add upstream https://github.com/upstash/context7.git
   git config --global --add safe.directory D:/code/ai/m0x-context7
   ```
 
-  (Adjust the path if your clone lives elsewhere.)
+  (Adjust path if your clone lives elsewhere.)
