@@ -1,5 +1,50 @@
 # @upstash/context7-mcp
 
+## 2.1.8
+
+### Patch Changes
+
+- 00833f9: Preserve Node's default trusted CAs when `NODE_EXTRA_CA_CERTS` is configured, and add a regression test for custom CA loading.
+
+## 2.1.7
+
+### Patch Changes
+
+- 658ec67: Add --version/-v flag to MCP CLI
+- 8322879: Improve resolve libryar id tool prompt to provide the libraryName query with proper format
+
+## 2.1.6
+
+### Patch Changes
+
+- a667712: Update search filter warning
+- be1a39a: Update server metadata and instructions.
+
+## 2.1.5
+
+### Patch Changes
+
+- 2070cb1: Support NODE_EXTRA_CA_CERTS for enterprise MITM proxies by injecting custom CA certificates into undici's global dispatcher at runtime
+
+## 2.1.4
+
+### Patch Changes
+
+- 9de3f06: Display warning when public library access filter is being used to filter libraries.
+
+## 2.1.3
+
+### Patch Changes
+
+- 9523522: Reject GET requests on MCP endpoints with 405 to eliminate idle SSE connection timeouts
+- 59d0327: Include source field in search result response
+
+## 2.1.2
+
+### Patch Changes
+
+- 617d8ed: Remove unnecessary warning and update tool descriptions
+
 ## 2.1.1
 
 ### Patch Changes

@@ -24,10 +24,13 @@ import {
 import {
   checkboxWithHover,
   terminalLink,
-  formatInstallCount,
-  formatTrustScore,
+  formatPopularity,
+  formatTrust,
+  formatInstallRange,
+  getTrustLabel,
 } from "../utils/prompts.js";
 import { installSkillFiles, symlinkSkill } from "../utils/installer.js";
+import { listSkillsFromGitHub, getSkillFromGitHub } from "../utils/github.js";
 import { trackEvent } from "../utils/tracking.js";
 import { registerGenerateCommand } from "./generate.js";
 import type {
@@ -38,9 +41,17 @@ import type {
   RemoveOptions,
   SuggestOptions,
   InstallTargets,
+  Scope,
 } from "../types.js";
-import { IDE_NAMES, IDE_PATHS, IDE_GLOBAL_PATHS } from "../types.js";
-import type { IDE, Scope } from "../types.js";
+import {
+  IDE_NAMES,
+  IDE_PATHS,
+  IDE_GLOBAL_PATHS,
+  UNIVERSAL_SKILLS_PATH,
+  UNIVERSAL_SKILLS_GLOBAL_PATH,
+  UNIVERSAL_AGENTS_LABEL,
+  VENDOR_SPECIFIC_AGENTS,
+} from "../types.js";
 import { homedir } from "os";
 import { detectProjectDependencies } from "../utils/deps.js";
 import { loadTokens, isTokenExpired } from "../utils/auth.js";
@@ -51,16 +62,27 @@ function logInstallSummary(
   skillNames: string[]
 ): void {
   log.blank();
+  const hasUniversal = targets.ides.some((ide) => ide === "universal");
+  const vendorIdes = targets.ides.filter((ide) => ide !== "universal");
+
   let dirIndex = 0;
-  for (const ide of targets.ides) {
-    for (let i = 0; i < targets.scopes.length; i++) {
-      const dir = targetDirs[dirIndex++];
-      log.dim(`${IDE_NAMES[ide]}: ${dir}`);
-      for (const name of skillNames) {
-        log.itemAdd(name);
-      }
+  if (hasUniversal && dirIndex < targetDirs.length) {
+    log.plain(`${pc.bold("Universal")} ${pc.dim(targetDirs[dirIndex])}`);
+    for (const name of skillNames) {
+      log.itemAdd(name);
     }
+    dirIndex++;
   }
+
+  for (const ide of vendorIdes) {
+    if (dirIndex >= targetDirs.length) break;
+    log.plain(`${pc.bold(IDE_NAMES[ide])} ${pc.dim(targetDirs[dirIndex])}`);
+    for (const name of skillNames) {
+      log.itemAdd(name);
+    }
+    dirIndex++;
+  }
+
   log.blank();
 }
 
@@ -77,12 +99,12 @@ export function registerSkillCommands(program: Command): void {
     .argument("<repository>", "GitHub repository (/owner/repo)")
     .argument("[skill]", "Specific skill name to install")
     .option("--all", "Install all skills without prompting")
+    .option("--all-agents", "Install to all supported agent locations")
+    .option("-y, --yes", "Skip confirmation prompts")
     .option("--global", "Install globally instead of current directory")
     .option("--claude", "Claude Code (.claude/skills/)")
     .option("--cursor", "Cursor (.cursor/skills/)")
-    .option("--codex", "Codex (.codex/skills/)")
-    .option("--opencode", "OpenCode (.opencode/skills/)")
-    .option("--amp", "Amp (.agents/skills/)")
+    .option("--universal", "Universal (.agents/skills/)")
     .option("--antigravity", "Antigravity (.agent/skills/)")
     .description("Install skills from a repository")
     .action(async (project: string, skillName: string | undefined, options: AddOptions) => {
@@ -104,9 +126,7 @@ export function registerSkillCommands(program: Command): void {
     .option("--global", "List global skills")
     .option("--claude", "Claude Code (.claude/skills/)")
     .option("--cursor", "Cursor (.cursor/skills/)")
-    .option("--codex", "Codex (.codex/skills/)")
-    .option("--opencode", "OpenCode (.opencode/skills/)")
-    .option("--amp", "Amp (.agents/skills/)")
+    .option("--universal", "Universal (.agents/skills/)")
     .option("--antigravity", "Antigravity (.agent/skills/)")
     .description("List installed skills")
     .action(async (options: ListOptions) => {
@@ -121,9 +141,7 @@ export function registerSkillCommands(program: Command): void {
     .option("--global", "Remove from global skills")
     .option("--claude", "Claude Code (.claude/skills/)")
     .option("--cursor", "Cursor (.cursor/skills/)")
-    .option("--codex", "Codex (.codex/skills/)")
-    .option("--opencode", "OpenCode (.opencode/skills/)")
-    .option("--amp", "Amp (.agents/skills/)")
+    .option("--universal", "Universal (.agents/skills/)")
     .option("--antigravity", "Antigravity (.agent/skills/)")
     .description("Remove an installed skill")
     .action(async (name: string, options: RemoveOptions) => {
@@ -143,9 +161,7 @@ export function registerSkillCommands(program: Command): void {
     .option("--global", "Install globally instead of current directory")
     .option("--claude", "Claude Code (.claude/skills/)")
     .option("--cursor", "Cursor (.cursor/skills/)")
-    .option("--codex", "Codex (.codex/skills/)")
-    .option("--opencode", "OpenCode (.opencode/skills/)")
-    .option("--amp", "Amp (.agents/skills/)")
+    .option("--universal", "Universal (.agents/skills/)")
     .option("--antigravity", "Antigravity (.agent/skills/)")
     .description("Suggest skills based on your project dependencies")
     .action(async (options: SuggestOptions) => {
@@ -159,12 +175,12 @@ export function registerSkillAliases(program: Command): void {
     .argument("<repository>", "GitHub repository (/owner/repo)")
     .argument("[skill]", "Specific skill name to install")
     .option("--all", "Install all skills without prompting")
+    .option("--all-agents", "Install to all supported agent locations")
+    .option("-y, --yes", "Skip confirmation prompts")
     .option("--global", "Install globally instead of current directory")
     .option("--claude", "Claude Code (.claude/skills/)")
     .option("--cursor", "Cursor (.cursor/skills/)")
-    .option("--codex", "Codex (.codex/skills/)")
-    .option("--opencode", "OpenCode (.opencode/skills/)")
-    .option("--amp", "Amp (.agents/skills/)")
+    .option("--universal", "Universal (.agents/skills/)")
     .option("--antigravity", "Antigravity (.agent/skills/)")
     .description("Install skills (alias for: skills install)")
     .action(async (project: string, skillName: string | undefined, options: AddOptions) => {
@@ -184,9 +200,7 @@ export function registerSkillAliases(program: Command): void {
     .option("--global", "Install globally instead of current directory")
     .option("--claude", "Claude Code (.claude/skills/)")
     .option("--cursor", "Cursor (.cursor/skills/)")
-    .option("--codex", "Codex (.codex/skills/)")
-    .option("--opencode", "OpenCode (.opencode/skills/)")
-    .option("--amp", "Amp (.agents/skills/)")
+    .option("--universal", "Universal (.agents/skills/)")
     .option("--antigravity", "Antigravity (.agent/skills/)")
     .description("Suggest skills (alias for: skills suggest)")
     .action(async (options: SuggestOptions) => {
@@ -224,26 +238,50 @@ async function installCommand(
       if (skillData.error === "prompt_injection_detected") {
         spinner.fail(pc.red(`Prompt injection detected in skill: ${skillName}`));
         log.warn("This skill contains potentially malicious content and cannot be installed.");
-      } else {
-        spinner.fail(pc.red(`Skill not found: ${skillName}`));
+        return;
       }
-      return;
-    }
 
-    spinner.succeed(`Found skill: ${skillName}`);
-    selectedSkills = [
-      {
-        name: skillData.name,
-        description: skillData.description,
-        url: skillData.url,
-        project: repo,
-      },
-    ];
+      spinner.text = `Fetching skill from GitHub: ${skillName}...`;
+      const ghResult = await getSkillFromGitHub(repo, skillName);
+      if (ghResult.status === "repo_not_found") {
+        spinner.fail(pc.red(`Repository not found: ${repo}`));
+        return;
+      }
+      if (ghResult.status !== "ok" || !ghResult.skill) {
+        spinner.fail(pc.red(`Skill not found: ${skillName}`));
+        return;
+      }
+
+      spinner.succeed(`Found skill: ${skillName}`);
+      selectedSkills = [ghResult.skill];
+    } else {
+      spinner.succeed(`Found skill: ${skillName}`);
+      selectedSkills = [
+        {
+          name: skillData.name,
+          description: skillData.description,
+          url: skillData.url,
+          project: repo,
+        },
+      ];
+    }
   } else {
     // Fetch all skills when no specific names provided
-    const data = await listProjectSkills(repo);
+    let data = await listProjectSkills(repo);
 
-    if (data.error) {
+    if ((data.error || !data.skills || data.skills.length === 0) && !data.blockedSkillsCount) {
+      spinner.text = `Fetching skills from GitHub...`;
+      const ghResult = await listSkillsFromGitHub(repo);
+      if (ghResult.status === "repo_not_found") {
+        spinner.fail(pc.red(`Repository not found: ${repo}`));
+        return;
+      }
+      if (ghResult.status === "ok" && ghResult.skills.length > 0) {
+        data = { project: repo, skills: ghResult.skills };
+      }
+    }
+
+    if (data.error && (!data.skills || data.skills.length === 0)) {
       spinner.fail(pc.red(`Error: ${data.message || data.error}`));
       return;
     }
@@ -272,12 +310,13 @@ async function installCommand(
     } else {
       const indexWidth = data.skills.length.toString().length;
       const maxNameLen = Math.max(...data.skills.map((s) => s.name.length));
+      const popularityColWidth = 13;
       const choices = skillsWithRepo.map((s, index) => {
         const indexStr = pc.dim(`${(index + 1).toString().padStart(indexWidth)}.`);
         const paddedName = s.name.padEnd(maxNameLen);
-        const installs = formatInstallCount(s.installCount);
+        const popularity = formatPopularity(s.installCount) + " ".repeat(popularityColWidth - 4);
+        const trust = formatTrust(s.trustScore);
 
-        // Build metadata panel shown when item is hovered
         const skillUrl = `https://context7.com/skills${s.project}/${s.name}`;
         const skillLink = terminalLink(s.name, skillUrl, pc.white);
         const repoLink = terminalLink(s.project, `https://github.com${s.project}`, pc.white);
@@ -286,12 +325,14 @@ async function installCommand(
           "",
           `${pc.yellow("Skill:")}       ${skillLink}`,
           `${pc.yellow("Repo:")}        ${repoLink}`,
+          `${pc.yellow("Installs:")}    ${pc.white(formatInstallRange(s.installCount))}`,
+          `${pc.yellow("Trust:")}       ${s.trustScore !== undefined && s.trustScore >= 0 ? pc.white(s.trustScore.toFixed(1)) : pc.dim("-")}`,
           `${pc.yellow("Description:")}`,
           pc.white(s.description || "No description"),
         ];
 
         return {
-          name: installs ? `${indexStr} ${paddedName} ${installs}` : `${indexStr} ${paddedName}`,
+          name: `${indexStr} ${paddedName} ${popularity}${trust}`,
           value: s,
           description: metadataLines.join("\n"),
         };
@@ -299,18 +340,25 @@ async function installCommand(
 
       log.blank();
 
-      // Align "installs" column header with the count values
-      // "? " prefix = 2 chars, checkbox prefix "❯◯ " = 4 chars, index + dot + space, padded name + space
-      const installsOffset = 4 + indexWidth + 1 + 1 + maxNameLen + 1 - 3;
-      const message =
-        "Select skills:" + " ".repeat(Math.max(1, installsOffset - 14)) + pc.dim("installs");
+      const checkboxPrefixWidth = 3;
+      const headerPad = " ".repeat(checkboxPrefixWidth + indexWidth + 1 + 1 + maxNameLen + 1);
+      const headerLine =
+        headerPad + pc.dim("Popularity".padEnd(popularityColWidth)) + pc.dim("Trust");
 
       try {
         selectedSkills = await checkboxWithHover({
-          message,
+          message: `Select skills to install:\n${headerLine}`,
           choices,
           pageSize: 15,
           loop: false,
+          theme: {
+            style: {
+              message: (text: string, status: string) => {
+                if (status === "done") return pc.dim(text.split("\n")[0]);
+                return pc.bold(text);
+              },
+            },
+          },
         });
       } catch {
         log.warn("Installation cancelled");
@@ -432,18 +480,19 @@ async function searchCommand(query: string): Promise<void> {
 
   spinner.succeed(`Found ${data.results.length} skill(s)`);
   trackEvent("search_query", { query, resultCount: data.results.length });
+  log.blank();
 
   const indexWidth = data.results.length.toString().length;
-  const maxNameLen = Math.max(...data.results.map((s) => s.name.length));
-  const installsColWidth = 10;
+  const nameWithRepo = (s: SkillSearchResult) => `${s.name} ${pc.dim(`(${s.project})`)}`;
+  const nameWithRepoLen = (s: SkillSearchResult) => `${s.name} (${s.project})`.length;
+  const maxNameLen = Math.max(...data.results.map(nameWithRepoLen));
+  const popularityColWidth = 13;
   const choices = data.results.map((s, index) => {
     const indexStr = pc.dim(`${(index + 1).toString().padStart(indexWidth)}.`);
-    const paddedName = s.name.padEnd(maxNameLen);
-    const installsRaw = s.installCount ? String(s.installCount) : "-";
-    const paddedInstalls =
-      formatInstallCount(s.installCount, pc.dim("-")) +
-      " ".repeat(installsColWidth - installsRaw.length);
-    const trust = formatTrustScore(s.trustScore);
+    const rawLen = nameWithRepoLen(s);
+    const displayName = nameWithRepo(s) + " ".repeat(maxNameLen - rawLen);
+    const popularity = formatPopularity(s.installCount) + " ".repeat(popularityColWidth - 4);
+    const trust = formatTrust(s.trustScore);
 
     const skillLink = terminalLink(
       s.name,
@@ -456,32 +505,38 @@ async function searchCommand(query: string): Promise<void> {
       "",
       `${pc.yellow("Skill:")}       ${skillLink}`,
       `${pc.yellow("Repo:")}        ${repoLink}`,
+      `${pc.yellow("Installs:")}    ${pc.white(formatInstallRange(s.installCount))}`,
+      `${pc.yellow("Trust:")}       ${s.trustScore !== undefined && s.trustScore >= 0 ? pc.white(s.trustScore.toFixed(1)) : pc.dim("-")}`,
       `${pc.yellow("Description:")}`,
       pc.white(s.description || "No description"),
     ];
 
     return {
-      name: `${indexStr} ${paddedName} ${paddedInstalls}${trust}`,
+      name: `${indexStr} ${displayName} ${popularity}${trust}`,
       value: s,
       description: metadataLines.join("\n"),
     };
   });
 
-  log.blank();
-
   const checkboxPrefixWidth = 3; // "❯◯ " or " ◯ "
   const headerPad = " ".repeat(checkboxPrefixWidth + indexWidth + 1 + 1 + maxNameLen + 1);
-  const headerLine =
-    headerPad + pc.dim("Installs".padEnd(installsColWidth)) + pc.dim("Trust(0-10)");
-  const message = "Select skills to install:\n" + headerLine;
+  const headerLine = headerPad + pc.dim("Popularity".padEnd(popularityColWidth)) + pc.dim("Trust");
 
   let selectedSkills: SkillSearchResult[];
   try {
     selectedSkills = await checkboxWithHover({
-      message,
+      message: `Select skills to install:\n${headerLine}`,
       choices,
       pageSize: 15,
       loop: false,
+      theme: {
+        style: {
+          message: (text: string, status: string) => {
+            if (status === "done") return pc.dim(text.split("\n")[0]);
+            return pc.bold(text);
+          },
+        },
+      },
     });
   } catch {
     log.warn("Installation cancelled");
@@ -581,27 +636,50 @@ async function searchCommand(query: string): Promise<void> {
 async function listCommand(options: ListOptions): Promise<void> {
   trackEvent("command", { name: "list" });
   const scope: Scope = options.global ? "global" : "project";
-  const pathMap = scope === "global" ? IDE_GLOBAL_PATHS : IDE_PATHS;
   const baseDir = scope === "global" ? homedir() : process.cwd();
 
-  const idesToCheck: IDE[] = hasExplicitIdeOption(options)
-    ? getSelectedIdes(options)
-    : (Object.keys(IDE_NAMES) as IDE[]);
+  const results: { label: string; path: string; skills: string[] }[] = [];
 
-  const results: { ide: IDE; skills: string[] }[] = [];
-
-  for (const ide of idesToCheck) {
-    const skillsDir = join(baseDir, pathMap[ide]);
+  // Helper to scan a skills directory
+  async function scanDir(dir: string): Promise<string[]> {
     try {
-      const entries = await readdir(skillsDir, { withFileTypes: true });
-      const skillFolders = entries
-        .filter((e) => e.isDirectory() || e.isSymbolicLink())
-        .map((e) => e.name);
-      if (skillFolders.length > 0) {
-        results.push({ ide, skills: skillFolders });
-      }
+      const entries = await readdir(dir, { withFileTypes: true });
+      return entries.filter((e) => e.isDirectory() || e.isSymbolicLink()).map((e) => e.name);
     } catch {
-      // Directory doesn't exist, skip
+      return [];
+    }
+  }
+
+  if (hasExplicitIdeOption(options)) {
+    // Explicit flag mode — check the specific IDE paths
+    const ides = getSelectedIdes(options);
+    for (const ide of ides) {
+      const dir =
+        ide === "universal"
+          ? join(baseDir, scope === "global" ? UNIVERSAL_SKILLS_GLOBAL_PATH : UNIVERSAL_SKILLS_PATH)
+          : join(baseDir, (scope === "global" ? IDE_GLOBAL_PATHS : IDE_PATHS)[ide]);
+      const label = ide === "universal" ? UNIVERSAL_AGENTS_LABEL : IDE_NAMES[ide];
+      const skills = await scanDir(dir);
+      if (skills.length > 0) {
+        results.push({ label, path: dir, skills });
+      }
+    }
+  } else {
+    // Default: check universal + vendor-specific
+    const universalPath = scope === "global" ? UNIVERSAL_SKILLS_GLOBAL_PATH : UNIVERSAL_SKILLS_PATH;
+    const universalDir = join(baseDir, universalPath);
+    const universalSkills = await scanDir(universalDir);
+    if (universalSkills.length > 0) {
+      results.push({ label: UNIVERSAL_AGENTS_LABEL, path: universalPath, skills: universalSkills });
+    }
+
+    for (const ide of VENDOR_SPECIFIC_AGENTS) {
+      const pathMap = scope === "global" ? IDE_GLOBAL_PATHS : IDE_PATHS;
+      const dir = join(baseDir, pathMap[ide]);
+      const skills = await scanDir(dir);
+      if (skills.length > 0) {
+        results.push({ label: IDE_NAMES[ide], path: pathMap[ide], skills });
+      }
     }
   }
 
@@ -612,10 +690,8 @@ async function listCommand(options: ListOptions): Promise<void> {
 
   log.blank();
 
-  for (const { ide, skills } of results) {
-    const ideName = IDE_NAMES[ide];
-    const path = pathMap[ide];
-    log.plain(`${pc.bold(ideName)} ${pc.dim(path)}`);
+  for (const { label, path, skills } of results) {
+    log.plain(`${pc.bold(label)} ${pc.dim(path)}`);
     for (const skill of skills) {
       log.plain(`  ${pc.green(skill)}`);
     }
@@ -737,25 +813,23 @@ async function suggestCommand(options: SuggestOptions): Promise<void> {
 
   searchSpinner.succeed(`Found ${skills.length} relevant skill(s)`);
   trackEvent("suggest_results", { depCount: deps.length, skillCount: skills.length });
-
   log.blank();
 
-  const maxNameLen = Math.max(...skills.map((s) => s.name.length));
-  const installsColWidth = 10;
-  const trustColWidth = 12;
+  const nameWithRepo = (s: SkillSearchResult) => `${s.name} ${pc.dim(`(${s.project})`)}`;
+  const nameWithRepoLen = (s: SkillSearchResult) => `${s.name} (${s.project})`.length;
+  const maxNameLen = Math.max(...skills.map(nameWithRepoLen));
+  const popularityColWidth = 13;
+  const trustColWidth = 8;
   const maxMatchedLen = Math.max(...skills.map((s) => s.matchedDep.length));
   const indexWidth = skills.length.toString().length;
 
   const choices = skills.map((s, index) => {
     const indexStr = pc.dim(`${(index + 1).toString().padStart(indexWidth)}.`);
-    const paddedName = s.name.padEnd(maxNameLen);
-    const installsRaw = s.installCount ? String(s.installCount) : "-";
-    const paddedInstalls =
-      formatInstallCount(s.installCount, pc.dim("-")) +
-      " ".repeat(installsColWidth - installsRaw.length);
-    const trustRaw =
-      s.trustScore !== undefined && s.trustScore >= 0 ? s.trustScore.toFixed(1) : "-";
-    const trust = formatTrustScore(s.trustScore) + " ".repeat(trustColWidth - trustRaw.length);
+    const rawLen = nameWithRepoLen(s);
+    const displayName = nameWithRepo(s) + " ".repeat(maxNameLen - rawLen);
+    const popularity = formatPopularity(s.installCount) + " ".repeat(popularityColWidth - 4);
+    const trustLabel = getTrustLabel(s.trustScore);
+    const trust = formatTrust(s.trustScore) + " ".repeat(trustColWidth - trustLabel.length);
     const matched = pc.yellow(s.matchedDep.padEnd(maxMatchedLen));
 
     const skillLink = terminalLink(
@@ -769,35 +843,43 @@ async function suggestCommand(options: SuggestOptions): Promise<void> {
       "",
       `${pc.yellow("Skill:")}       ${skillLink}`,
       `${pc.yellow("Repo:")}        ${repoLink}`,
+      `${pc.yellow("Installs:")}    ${pc.white(formatInstallRange(s.installCount))}`,
+      `${pc.yellow("Trust:")}       ${s.trustScore !== undefined && s.trustScore >= 0 ? pc.white(s.trustScore.toFixed(1)) : pc.dim("-")}`,
       `${pc.yellow("Relevant:")}    ${pc.white(s.matchedDep)}`,
       `${pc.yellow("Description:")}`,
       pc.white(s.description || "No description"),
     ];
 
     return {
-      name: `${indexStr} ${paddedName} ${paddedInstalls}${trust}${matched}`,
+      name: `${indexStr} ${displayName} ${popularity}${trust}${matched}`,
       value: s,
       description: metadataLines.join("\n"),
     };
   });
 
-  // Build header
   const checkboxPrefixWidth = 3; // "❯◯ " or " ◯ "
   const headerPad = " ".repeat(checkboxPrefixWidth + indexWidth + 1 + 1 + maxNameLen + 1);
   const headerLine =
     headerPad +
-    pc.dim("Installs".padEnd(installsColWidth)) +
-    pc.dim("Trust(0-10)".padEnd(trustColWidth)) +
+    pc.dim("Popularity".padEnd(popularityColWidth)) +
+    pc.dim("Trust".padEnd(trustColWidth)) +
     pc.dim("Relevant");
-  const message = "Select skills to install:\n" + headerLine;
 
   let selectedSkills: SkillSearchResult[];
   try {
     selectedSkills = await checkboxWithHover({
-      message,
+      message: `Select skills to install:\n${headerLine}`,
       choices,
       pageSize: 15,
       loop: false,
+      theme: {
+        style: {
+          message: (text: string, status: string) => {
+            if (status === "done") return pc.dim(text.split("\n")[0]);
+            return pc.bold(text);
+          },
+        },
+      },
     });
   } catch {
     log.warn("Installation cancelled");

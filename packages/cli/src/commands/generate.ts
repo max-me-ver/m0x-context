@@ -45,9 +45,7 @@ export function registerGenerateCommand(skillCommand: Command): void {
     .option("--global", "Generate in global skills directory")
     .option("--claude", "Claude Code (.claude/skills/)")
     .option("--cursor", "Cursor (.cursor/skills/)")
-    .option("--codex", "Codex (.codex/skills/)")
-    .option("--opencode", "OpenCode (.opencode/skills/)")
-    .option("--amp", "Amp (.agents/skills/)")
+    .option("--universal", "Universal (.agents/skills/)")
     .option("--antigravity", "Antigravity (.agent/skills/)")
     .description("Generate a skill for a library using AI")
     .action(async (options: GenerateOptions) => {
@@ -164,6 +162,13 @@ async function generateCommand(options: GenerateOptions): Promise<void> {
 
   searchSpinner.succeed(pc.green(`Found ${searchResult.results.length} relevant sources`));
   log.blank();
+
+  if (searchResult.searchFilterApplied) {
+    log.warn(
+      "Your results only include libraries matching your teamspace's library filters. To adjust quality thresholds or blocked libraries, update your filters at https://context7.com/dashboard?tab=policies"
+    );
+    log.blank();
+  }
 
   let selectedLibraries: LibrarySearchResult[];
   try {
@@ -432,7 +437,6 @@ async function generateCommand(options: GenerateOptions): Promise<void> {
       await new Promise<void>((resolve) => {
         const child = spawn(editor, [previewFile!], {
           stdio: "inherit",
-          shell: true,
         });
         child.on("close", () => resolve());
       });

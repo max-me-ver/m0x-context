@@ -8,15 +8,14 @@ import {
   createCallbackServer,
   exchangeCodeForTokens,
   saveTokens,
-  loadTokens,
   clearTokens,
   buildAuthorizationUrl,
-  isTokenExpired,
+  getValidAccessToken,
 } from "../utils/auth.js";
 
 import { trackEvent } from "../utils/tracking.js";
-
-const CLI_CLIENT_ID = "2veBSofhicRBguUT";
+import { CLI_CLIENT_ID } from "../constants.js";
+import { getBaseUrl } from "../utils/api.js";
 
 let baseUrl = "https://context7.com";
 
@@ -117,18 +116,13 @@ export async function performLogin(openBrowser = true): Promise<string | null> {
 
 async function loginCommand(options: { browser: boolean }): Promise<void> {
   trackEvent("command", { name: "login" });
-  const existingTokens = loadTokens();
-  if (existingTokens) {
-    const expired = isTokenExpired(existingTokens);
-    if (!expired || existingTokens.refresh_token) {
-      console.log(pc.yellow("You are already logged in."));
-      console.log(
-        pc.dim("Run 'ctx7 logout' first if you want to log in with a different account.")
-      );
-      return;
-    }
-    clearTokens();
+  const existingToken = await getValidAccessToken();
+  if (existingToken) {
+    console.log(pc.yellow("You are already logged in."));
+    console.log(pc.dim("Run 'ctx7 logout' first if you want to log in with a different account."));
+    return;
   }
+  clearTokens();
 
   const token = await performLogin(options.browser);
   if (!token) {
@@ -149,9 +143,9 @@ function logoutCommand(): void {
 
 async function whoamiCommand(): Promise<void> {
   trackEvent("command", { name: "whoami" });
-  const tokens = loadTokens();
+  const accessToken = await getValidAccessToken();
 
-  if (!tokens) {
+  if (!accessToken) {
     console.log(pc.yellow("Not logged in."));
     console.log(pc.dim("Run 'ctx7 login' to authenticate."));
     return;
@@ -160,29 +154,30 @@ async function whoamiCommand(): Promise<void> {
   console.log(pc.green("Logged in"));
 
   try {
-    const userInfo = await fetchUserInfo(tokens.access_token);
-    if (userInfo.name) {
-      console.log(`${pc.dim("Name:".padEnd(9))}${userInfo.name}`);
+    const whoami = await fetchWhoami(accessToken);
+    if (whoami.name) {
+      console.log(`${pc.dim("Name:".padEnd(13))}${whoami.name}`);
     }
-    if (userInfo.email) {
-      console.log(`${pc.dim("Email:".padEnd(9))}${userInfo.email}`);
+    if (whoami.email) {
+      console.log(`${pc.dim("Email:".padEnd(13))}${whoami.email}`);
+    }
+    if (whoami.teamspace) {
+      console.log(`${pc.dim("Teamspace:".padEnd(13))}${whoami.teamspace.name}`);
     }
   } catch {
-    if (isTokenExpired(tokens) && !tokens.refresh_token) {
-      console.log(pc.dim("(Session may be expired - run 'ctx7 login' to refresh)"));
-    }
+    console.log(pc.dim("(Session may be expired - run 'ctx7 login' to refresh)"));
   }
 }
 
-interface UserInfo {
-  sub?: string;
-  name?: string;
-  email?: string;
-  picture?: string;
+interface WhoamiResponse {
+  success: boolean;
+  name: string | null;
+  email: string | null;
+  teamspace: { id: string; name: string } | null;
 }
 
-async function fetchUserInfo(accessToken: string): Promise<UserInfo> {
-  const response = await fetch("https://clerk.context7.com/oauth/userinfo", {
+async function fetchWhoami(accessToken: string): Promise<WhoamiResponse> {
+  const response = await fetch(`${getBaseUrl()}/api/dashboard/whoami`, {
     headers: {
       Authorization: `Bearer ${accessToken}`,
     },
@@ -192,5 +187,5 @@ async function fetchUserInfo(accessToken: string): Promise<UserInfo> {
     throw new Error("Failed to fetch user info");
   }
 
-  return (await response.json()) as UserInfo;
+  return (await response.json()) as WhoamiResponse;
 }

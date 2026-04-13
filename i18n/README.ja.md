@@ -33,7 +33,7 @@ Context7 は最新のコード例とドキュメントを直接 LLM のコンテ
 
 ## 📚 プロジェクトの追加
 
-[プロジェクト追加ガイド](./adding-projects.md) をチェックして、お気に入りのライブラリを Context7 に追加（または更新）する方法を学びましょう。
+[プロジェクト追加ガイド](https://context7.com/docs/adding-libraries) をチェックして、お気に入りのライブラリを Context7 に追加（または更新）する方法を学びましょう。
 
 ## 🛠️ インストール
 
@@ -274,13 +274,13 @@ Smithery キーは [Smithery.ai Web ページ](https://smithery.ai/server/@upsta
 #### Claude Code ローカルサーバー接続
 
 ```sh
-claude mcp add context7 -- npx -y @upstash/context7-mcp
+claude mcp add --scope user context7 -- npx -y @upstash/context7-mcp
 ```
 
 #### Claude Code リモートサーバー接続
 
 ```sh
-claude mcp add --transport http context7 https://mcp.context7.com/mcp
+claude mcp add --scope user --transport http context7 https://mcp.context7.com/mcp
 ```
 </details>
 

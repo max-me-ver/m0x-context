@@ -18,6 +18,7 @@ const DEFAULT_PORT = 3000;
 
 // Parse CLI arguments using commander
 const program = new Command()
+  .version(SERVER_VERSION, "-v, --version", "output the current version")
   .option("--transport <stdio|http>", "transport type", "stdio")
   .option("--port <number>", "port for HTTP transport", DEFAULT_PORT.toString())
   .option("--api-key <key>", "API key for authentication (or set CONTEXT7_API_KEY env var)")
@@ -139,10 +140,20 @@ const server = new McpServer(
   {
     name: "m0x-context",
     version: SERVER_VERSION,
+    websiteUrl: "https://context7.com",
+    description:
+      "Context7 provides up-to-date documentation and code examples for libraries and frameworks.",
+    icons: [
+      {
+        src: "https://context7.com/context7-icon-green.png",
+        mimeType: "image/png",
+      },
+    ],
   },
   {
-    instructions:
-      "Use this server to retrieve up-to-date documentation and code examples for any library.",
+    instructions: `Use this server to fetch current documentation whenever the user asks about a library, framework, SDK, API, CLI tool, or cloud service -- even well-known ones like React, Next.js, Prisma, Express, Tailwind, Django, or Spring Boot. This includes API syntax, configuration, version migration, library-specific debugging, setup instructions, and CLI tool usage. Use even when you think you know the answer -- your training data may not reflect recent changes. Prefer this over web search for library docs.
+
+Do not use for: refactoring, writing scripts from scratch, debugging business logic, code review, or general programming concepts.`,
   }
 );
 
@@ -164,6 +175,17 @@ server.registerTool(
     description: `Resolves a package/product name to a m0x-context-compatible library ID and returns matching libraries.
 
 You MUST call this function before 'query-docs' to obtain a valid m0x-context-compatible library ID UNLESS the user explicitly provides a library ID in the format '/org/project' or '/org/project/version' in their query.
+
+Each result includes:
+- Library ID: m0x-context-compatible identifier (format: /org/project)
+- Name: Library or package name
+- Description: Short summary
+- Code Snippets: Number of available code examples
+- Source Reputation: Authority indicator (High, Medium, Low, or Unknown)
+- Benchmark Score: Quality indicator (100 is the highest score)
+- Versions: List of versions if available. Use one of those versions if the user provides a version in their query. The format of the version is /org/project/version.
+
+For best results, select libraries based on name match, source reputation, snippet coverage, benchmark score, and relevance to your use case.
 
 Selection Process:
 1. Analyze the query to understand what library/package the user is looking for
@@ -187,11 +209,13 @@ IMPORTANT: Do not call this tool more than 3 times per question. If you cannot f
       query: z
         .string()
         .describe(
-          "The user's original question or task. This is used to rank library results by relevance to what the user is trying to accomplish. IMPORTANT: Do not include any sensitive or confidential information such as API keys, passwords, credentials, or personal data in your query."
+          "The question or task you need help with. This is used to rank library results by relevance to what the user is trying to accomplish. The query is sent to the Context7 API for processing. Do not include any sensitive or confidential information such as API keys, passwords, credentials, personal data, or proprietary code in your query."
         ),
       libraryName: z
         .string()
-        .describe("Library name to search for and retrieve a m0x-context-compatible library ID."),
+        .describe(
+          "Library name to search for and retrieve a m0x-context-compatible library ID. Use the official library name with proper punctuation — e.g., 'Next.js' instead of 'nextjs', 'Customer.io' instead of 'customerio', 'Three.js' instead of 'threejs'."
+        ),
     },
     annotations: {
       readOnlyHint: true,
@@ -216,19 +240,6 @@ IMPORTANT: Do not call this tool more than 3 times per question. If you cannot f
     const resultsText = formatSearchResults(searchResponse);
 
     const responseText = `Available Libraries:
-
-Each result includes:
-- Library ID: m0x-context-compatible identifier (format: /org/project)
-- Name: Library or package name
-- Description: Short summary
-- Code Snippets: Number of available code examples
-- Source Reputation: Authority indicator (High, Medium, Low, or Unknown)
-- Benchmark Score: Quality indicator (100 is the highest score)
-- Versions: List of versions if available. Use one of those versions if the user provides a version in their query. The format of the version is /org/project/version.
-
-For best results, select libraries based on name match, source reputation, snippet coverage, benchmark score, and relevance to your use case.
-
-----------
 
 ${resultsText}`;
 
@@ -261,7 +272,7 @@ IMPORTANT: Do not call this tool more than 3 times per question. If you cannot f
       query: z
         .string()
         .describe(
-          "The question or task you need help with. Be specific and include relevant details. Good: 'How to set up authentication with JWT in Express.js' or 'React useEffect cleanup function examples'. Bad: 'auth' or 'hooks'. IMPORTANT: Do not include any sensitive or confidential information such as API keys, passwords, credentials, or personal data in your query."
+          "The question or task you need help with. Be specific and include relevant details. Good: 'How to set up authentication with JWT in Express.js' or 'React useEffect cleanup function examples'. Bad: 'auth' or 'hooks'. The query is sent to the Context7 API for processing. Do not include any sensitive or confidential information such as API keys, passwords, credentials, personal data, or proprietary code in your query."
         ),
     },
     annotations: {
@@ -338,6 +349,17 @@ async function main() {
       res: express.Response,
       requireAuth: boolean
     ) => {
+      // Reject GET requests — this server is stateless and does not send server-initiated
+      // notifications, so SSE streams serve no purpose and cause mass NGINX timeouts.
+      // Returning 405 is spec-compliant per MCP StreamableHTTP (2025-03-26).
+      if (req.method === "GET") {
+        return res.status(405).json({
+          jsonrpc: "2.0",
+          error: { code: -32000, message: "Server does not support GET requests" },
+          id: null,
+        });
+      }
+
       try {
         const apiKey = extractApiKey(req);
         const resourceUrl = RESOURCE_URL;

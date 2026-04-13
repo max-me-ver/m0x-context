@@ -34,7 +34,7 @@ O Context7 busca exemplos de código e documentação atualizados diretamente pa
 
 ## 📚 Adicionando Projetos
 
-Confira nosso [guia de adição de projetos](./adding-projects.md) para aprender como adicionar (ou atualizar) suas bibliotecas favoritas ao Context7.
+Confira nosso [guia de adição de projetos](https://context7.com/docs/adding-libraries) para aprender como adicionar (ou atualizar) suas bibliotecas favoritas ao Context7.
 
 ## 🛠️ Instalação
 
@@ -96,13 +96,13 @@ Execute este comando. Veja mais em [Claude Code MCP docs](https://docs.anthropic
 #### Conexão Local do Servidor Claude Code
 
 ```sh
-claude mcp add context7 -- npx -y @upstash/context7-mcp
+claude mcp add --scope user context7 -- npx -y @upstash/context7-mcp
 ```
 
 #### Conexão Remota do Servidor Claude Code
 
 ```sh
-claude mcp add --transport http context7 https://mcp.context7.com/mcp
+claude mcp add --scope user --transport http context7 https://mcp.context7.com/mcp
 ```
 </details>
 

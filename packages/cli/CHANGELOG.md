@@ -1,5 +1,113 @@
 # Changelog
 
+## 0.3.12
+
+### Patch Changes
+
+- 33f2338: Add Codex-specific CLI setup guidance so generated rules and the installed `find-docs` skill tell Codex to rerun Context7 CLI requests outside the default sandbox after DNS or network failures.
+
+## 0.3.11
+
+### Patch Changes
+
+- bc8eaf1: Add `--all-agents` and `--yes` support to `ctx7 skills install` for non-interactive multi-agent installs.
+
+## 0.3.10
+
+### Patch Changes
+
+- fb29170: Add Gemini CLI support to setup command
+- 89d4862: Use GITHUB_TOKEN/GH_TOKEN or gh CLI auth for skill downloads to avoid GitHub API rate limits and support private repos
+- 8322879: Improve resolve libryar id tool prompt to provide the libraryName query with proper format
+
+## 0.3.9
+
+### Patch Changes
+
+- 6961bdd: Allow re-selecting already configured agents in ctx7 setup and overwrite existing MCP config entries instead of skipping them. Fix TOML replacement to correctly handle sub-sections and prevent whitespace drift on repeated runs.
+
+## 0.3.8
+
+### Patch Changes
+
+- a667712: Update search filter warning
+- d739f9b: Fix OpenCode MCP setup to resolve all config file variants (opencode.json, opencode.jsonc, .opencode.json, .opencode.jsonc)
+- 4f13168: Install rules alongside skills in `ctx7 setup` for better trigger rates
+  - CLI setup now installs a rule file for each agent (previously only installed the skill)
+  - Rule content fetched from GitHub, with agent-specific formatting (alwaysApply for Cursor)
+  - Updated find-docs skill description for higher invocation rates (66% -> 98%)
+  - Added Codex agent support with AGENTS.md append
+  - OpenCode now writes to AGENTS.md instead of .opencode/rules/
+  - Selective rule content with explicit when-to-use/when-not-to-use guidance
+
+- c3c2647: Use ~/.agents/skills instead of ~/.config/agents/skills for global universal skill installs
+
+## 0.3.7
+
+### Patch Changes
+
+- 93eaf54: Remove shell:true from spawn call in generate command to prevent command injection via EDITOR env variable
+- 8c5cf7d: Prevent directory traversal in skill file installation by validating resolved paths stay within the target directory
+
+## 0.3.6
+
+### Patch Changes
+
+- fae6127: Add active teamspace name to whoami command output
+- 4b63117: Reorder setup mode choices to show MCP server first
+- 18b3292: Add token refresh support, centralize auth constants, switch whoami to internal API endpoint with teamspace display, and add unit tests for CLI auth utilities and commands
+
+## 0.3.5
+
+### Patch Changes
+
+- 7e60d05: - feat(cli): track install count events when skills are installed via `ctx7 setup`
+
+## 0.3.4
+
+### Patch Changes
+
+- 62dc278: - feat(cli): enumerate popularity with a 4-star scale in skill search, install, and suggest results
+  - feat(cli): show install count range and trust score in skill hover details
+  - fix(cli): rename "docs" skill to "find-docs" in setup output and prompts
+- 04130b5: Consolidate skills under /skills with canonical sources: rename docs→find-docs, ctx7-cli→context7-cli, add context7-mcp as canonical MCP skill. MCP setup now downloads skill from GitHub instead of using hardcoded content.
+- d418405: Add CLI mode to ctx7 setup for installing the docs skill without MCP configuration
+
+## 0.3.3
+
+### Patch Changes
+
+- 31b4fb8: Align CLI library output format with MCP: use labeled fields (Title, Context7-compatible library ID, Description, Code Snippets, Source Reputation, Benchmark Score, Versions) and categorical reputation labels (High/Medium/Low/Unknown) instead of numeric trust scores
+- 9de3f06: Display warning when public library access filter is being used to filter libraries.
+- 05a4406: Remove default selection of Universal agent target during skills install prompt
+- 9aae852: Show source repository next to skill name in search and suggest results for easier disambiguation
+
+## 0.3.2
+
+### Patch Changes
+
+- df60e3e: Add `library` and `docs` commands for querying library documentation from the terminal
+
+## 0.3.1
+
+### Patch Changes
+
+- c66950a: Install documentation-lookup skill during `ctx7 setup`
+
+## 0.3.0
+
+### Minor Changes
+
+- 3d66191: Add `ctx7 setup` command for configuring Context7 MCP and rules across Claude Code, Cursor, and OpenCode
+
+## 0.2.4
+
+### Patch Changes
+
+- 4663c15: - Adopt `.agents/skills` as universal install target, supporting multiple agents with a single installation
+  - Replace `--codex`, `--opencode`, and `--amp` flags with single `--universal` flag
+  - Improve checkbox UI with aligned column headers for better readability
+
 ## 0.2.3
 
 ### Patch Changes

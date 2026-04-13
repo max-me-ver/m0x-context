@@ -33,7 +33,7 @@ Context7 завантажує свіжі приклади коду й докум
 
 ## 📚 Додавання проєктів
 
-Ознайомтеся з нашим [посібником з додавання проєктів](./adding-projects.md), щоб дізнатися, як додати (або оновити) ваші улюблені бібліотеки в Context7.
+Ознайомтеся з нашим [посібником з додавання проєктів](https://context7.com/docs/adding-libraries), щоб дізнатися, як додати (або оновити) ваші улюблені бібліотеки в Context7.
 
 ## 🛠️ Встановлення
 
@@ -356,13 +356,13 @@ npx -y @smithery/cli@latest install @upstash/context7-mcp --client <CLIENT_NAME>
 #### Підключення до локального сервера Claude Code
 
 ```sh
-claude mcp add context7 -- npx -y @upstash/context7-mcp
+claude mcp add --scope user context7 -- npx -y @upstash/context7-mcp
 ```
 
 #### Підключення до віддаленого сервера Claude Code
 
 ```sh
-claude mcp add --transport http context7 https://mcp.context7.com/mcp
+claude mcp add --scope user --transport http context7 https://mcp.context7.com/mcp
 ```
 </details>
 

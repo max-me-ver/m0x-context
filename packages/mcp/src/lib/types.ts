@@ -11,11 +11,13 @@ export interface SearchResult {
   trustScore?: number;
   benchmarkScore?: number;
   versions?: string[];
+  source?: string;
 }
 
 export interface SearchResponse {
   error?: string;
   results: SearchResult[];
+  searchFilterApplied?: boolean;
 }
 
 // Version state is still needed for validating search results

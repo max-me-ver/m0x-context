@@ -33,7 +33,7 @@ Context7 mengambil contoh kode dan dokumentasi terkini langsung ke konteks LLM.
 
 ## 📚 Menambahkan Proyek
 
-Kunjungi [panduan penambahan proyek](./adding-projects.md) untuk mempelajari cara menambahkan (atau memperbarui) pustaka favorit Anda ke Context7.
+Kunjungi [panduan penambahan proyek](https://context7.com/docs/adding-libraries) untuk mempelajari cara menambahkan (atau memperbarui) pustaka favorit Anda ke Context7.
 
 ## 🛠️ Instalasi
 
@@ -305,13 +305,13 @@ Jalankan perintah ini. Lihat [dokumentasi MCP Claude Code](https://docs.anthropi
 #### Koneksi Server Lokal Claude Code
 
 ```sh
-claude mcp add context7 -- npx -y @upstash/context7-mcp
+claude mcp add --scope user context7 -- npx -y @upstash/context7-mcp
 ```
 
 #### Koneksi Server Remote Claude Code
 
 ```sh
-claude mcp add --transport http context7 https://mcp.context7.com/mcp
+claude mcp add --scope user --transport http context7 https://mcp.context7.com/mcp
 ```
 </details>
 

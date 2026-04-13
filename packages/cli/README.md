@@ -1,6 +1,6 @@
 # ctx7
 
-CLI for the [Context7 Skills Registry](https://context7.com) - install and manage AI coding skills across different AI coding assistants.
+CLI for [Context7](https://context7.com) - query up-to-date library documentation and manage AI coding skills.
 
 Skills are reusable prompt instructions that enhance your AI coding assistant with specialized capabilities like working with specific frameworks, libraries, or coding patterns.
 
@@ -17,6 +17,30 @@ npm install -g ctx7
 ## Quick Start
 
 ```bash
+# Set up Context7 MCP for your coding agents
+ctx7 setup
+
+# Target a specific agent
+ctx7 setup --cursor
+ctx7 setup --claude
+ctx7 setup --opencode
+```
+
+### Library Documentation
+
+```bash
+# Find a library
+ctx7 library react
+ctx7 library nextjs "app router"
+
+# Get documentation
+ctx7 docs /facebook/react "useEffect cleanup"
+ctx7 docs /vercel/next.js "middleware"
+```
+
+### Skills
+
+```bash
 # Search for skills
 ctx7 skills search pdf
 
@@ -31,6 +55,58 @@ ctx7 skills list --claude
 ```
 
 ## Usage
+
+### Find a library
+
+Resolve a library name to a Context7 library ID.
+
+```bash
+ctx7 library react
+ctx7 library nextjs "app router setup"
+ctx7 library prisma "database relations"
+
+# Output as JSON
+ctx7 library react --json
+```
+
+### Query documentation
+
+Fetch documentation for a specific library using its Context7 ID.
+
+```bash
+ctx7 docs /facebook/react "useEffect cleanup"
+ctx7 docs /vercel/next.js "middleware authentication"
+ctx7 docs /prisma/prisma "one-to-many relations"
+
+# Output as JSON
+ctx7 docs /facebook/react "hooks" --json
+```
+
+### Setup
+
+Configure Context7 MCP and a rule for your AI coding agents. Authenticates via OAuth, generates an API key, and writes the config.
+
+```bash
+# Interactive (prompts for agent selection)
+ctx7 setup
+
+# Target specific agents
+ctx7 setup --cursor
+ctx7 setup --claude
+ctx7 setup --opencode
+
+# Use an existing API key instead of OAuth
+ctx7 setup --api-key YOUR_API_KEY
+
+# Use OAuth endpoint (IDE handles auth flow)
+ctx7 setup --oauth
+
+# Configure for current project only (default is global)
+ctx7 setup --project
+
+# Skip prompts
+ctx7 setup --yes
+```
 
 ### Generate skills
 
@@ -50,6 +126,7 @@ ctx7 skills g
 # Generate and install to a specific client
 ctx7 skills generate --cursor
 ctx7 skills generate --claude
+ctx7 skills generate --universal
 
 # Generate globally
 ctx7 skills generate --global
@@ -96,9 +173,16 @@ ctx7 skills install /anthropics/skills pdf commit
 # Install to a specific client
 ctx7 skills install /anthropics/skills pdf --cursor
 ctx7 skills install /anthropics/skills pdf --claude
+ctx7 skills install /anthropics/skills pdf --universal
 
 # Install globally (home directory instead of current project)
 ctx7 skills install /anthropics/skills pdf --global
+
+# Install non-interactively
+ctx7 skills install /anthropics/skills pdf --global --universal --yes
+
+# Install to all supported agent locations
+ctx7 skills install /anthropics/skills pdf --all-agents
 ```
 
 ### Search for skills
@@ -119,6 +203,7 @@ View skills installed in your project or globally.
 ctx7 skills list
 ctx7 skills list --claude
 ctx7 skills list --cursor
+ctx7 skills list --universal
 ctx7 skills list --global
 ```
 
@@ -137,6 +222,7 @@ Uninstall a skill from your project.
 ```bash
 ctx7 skills remove pdf
 ctx7 skills remove pdf --claude
+ctx7 skills remove pdf --universal
 ctx7 skills remove pdf --global
 ```
 
@@ -146,11 +232,9 @@ The CLI automatically detects which AI coding assistants you have installed and 
 
 | Client | Skills Directory |
 |--------|-----------------|
+| Universal (Amp, Codex, Gemini CLI, GitHub Copilot, OpenCode + more) | `.agents/skills/` |
 | Claude Code | `.claude/skills/` |
 | Cursor | `.cursor/skills/` |
-| Codex | `.codex/skills/` |
-| OpenCode | `.opencode/skills/` |
-| Amp | `.agents/skills/` |
 | Antigravity | `.agent/skills/` |
 
 ## Shortcuts

@@ -14,19 +14,56 @@ export function terminalLink(text: string, url: string, color?: (s: string) => s
 }
 
 /**
- * Formats install count for display.
+ * Formats install count into a popularity star rating (4 stars).
+ * 0/unknown → ☆☆☆☆, <100 → ★☆☆☆, <500 → ★★☆☆, <1000 → ★★★☆, 1000+ → ★★★★
  */
-export function formatInstallCount(count: number | undefined, placeholder = ""): string {
-  if (count === undefined || count === 0) return placeholder;
+export function formatPopularity(count: number | undefined): string {
+  const filled = "★";
+  const empty = "☆";
+  const max = 4;
+  let stars: number;
+  if (count === undefined || count === 0) stars = 0;
+  else if (count < 100) stars = 1;
+  else if (count < 500) stars = 2;
+  else if (count < 1000) stars = 3;
+  else stars = 4;
 
-  return pc.yellow(String(count));
+  const filledPart = filled.repeat(stars);
+  const emptyPart = empty.repeat(max - stars);
+  if (stars === 0) return pc.dim(emptyPart);
+  return pc.yellow(filledPart) + pc.dim(emptyPart);
 }
 
-export function formatTrustScore(score: number | undefined): string {
-  if (score === undefined || score < 0) return pc.dim("-");
+/**
+ * Returns the install count as a human-readable range string.
+ */
+export function formatInstallRange(count: number | undefined): string {
+  if (count === undefined || count === 0) return "Unknown";
+  if (count < 100) return "<100";
+  if (count < 500) return "<500";
+  if (count < 1000) return "<1,000";
+  return "1,000+";
+}
 
-  if (score < 3) return pc.red(score.toFixed(1));
-  return pc.yellow(score.toFixed(1));
+/**
+ * Formats trust score as High / Medium / Low label.
+ * Uses MCP reputation thresholds: >=7 High, >=4 Medium, <4 Low.
+ */
+export function formatTrust(score: number | undefined): string {
+  if (score === undefined || score < 0) return pc.dim("-");
+  if (score >= 7) return pc.green("High");
+  if (score >= 4) return pc.yellow("Medium");
+  return pc.red("Low");
+}
+
+/**
+ * Returns the raw trust label string (uncolored) for width calculations.
+ */
+export function getTrustLabel(score: number | undefined): string {
+  if (score === undefined || score < 0) return "-";
+  if (score >= 7) return "High";
+  if (score >= 4) return "Medium";
+  return "Low";
 }
 export interface CheckboxWithHoverOptions<T> {
   /** Function to extract display name from value. Defaults to (v) => v.name */
@@ -43,16 +80,21 @@ export async function checkboxWithHover<T>(
   );
   const values = choices.map((c) => c.value);
   const totalItems = values.length;
-  let cursorPosition = 0;
+  let cursorPosition = choices.findIndex((c) => !c.disabled);
+  if (cursorPosition < 0) cursorPosition = 0;
 
   // Default getName assumes object has 'name' property
   const getName = options?.getName ?? ((v: T) => (v as { name: string }).name);
 
   const keypressHandler = (_str: string | undefined, key: readline.Key) => {
-    if (key.name === "up" && cursorPosition > 0) {
-      cursorPosition--;
-    } else if (key.name === "down" && cursorPosition < totalItems - 1) {
-      cursorPosition++;
+    if (key.name === "up") {
+      let next = cursorPosition - 1;
+      while (next >= 0 && choices[next].disabled) next--;
+      if (next >= 0) cursorPosition = next;
+    } else if (key.name === "down") {
+      let next = cursorPosition + 1;
+      while (next < totalItems && choices[next].disabled) next++;
+      if (next < totalItems) cursorPosition = next;
     }
   };
 
@@ -64,6 +106,7 @@ export async function checkboxWithHover<T>(
     theme: {
       ...config.theme,
       style: {
+        answer: (text: string) => pc.green(text),
         ...config.theme?.style,
         highlight: (text: string) => pc.green(text),
         renderSelectedChoices: (
