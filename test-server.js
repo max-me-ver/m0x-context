@@ -5,7 +5,7 @@
  * Run: node test-server.js
  */
 
-const SERVER_URL = 'http://localhost:3000/mcp';
+const SERVER_URL = 'http://localhost:8080/mcp';
 
 async function testServer() {
     console.log('🧪 Testing m0x-context MCP Server...\n');
@@ -13,7 +13,7 @@ async function testServer() {
     // Test 1: Ping
     console.log('1️⃣ Testing ping endpoint...');
     try {
-        const pingResponse = await fetch('http://localhost:3000/ping');
+        const pingResponse = await fetch('http://localhost:8080/ping');
         const pingData = await pingResponse.text();
         console.log(`✅ Ping: ${pingData}\n`);
     } catch (error) {
@@ -80,7 +80,7 @@ async function testServer() {
 
     console.log('✅ Testing complete!\n');
     console.log('📝 Next steps:');
-    console.log('   1. Deploy to Railway: railway up');
+    console.log('   1. Deploy: see HOSTING.md (docker compose up --build)');
     console.log('   2. Add custom domain: mcp.m0x.in');
     console.log('   3. Test with LM Studio');
 }

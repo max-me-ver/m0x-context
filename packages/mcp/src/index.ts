@@ -14,7 +14,7 @@ import { AsyncLocalStorage } from "async_hooks";
 import { SERVER_VERSION, RESOURCE_URL, AUTH_SERVER_URL } from "./lib/constants.js";
 
 /** Default HTTP server port */
-const DEFAULT_PORT = 3000;
+const DEFAULT_PORT = 8080;
 
 // Parse CLI arguments using commander
 const program = new Command()

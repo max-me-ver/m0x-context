@@ -49,7 +49,7 @@ git remote add upstream https://github.com/upstash/context7.git
    git push origin main
    ```
 
-5. **Redeploy** your server (Railway, VPS, etc.) the same way you usually deploy after a code change.
+5. **Redeploy** your server (rebuild the Docker image or run `docker compose up --build` — see **HOSTING.md**).
 
 ## Notes
 

@@ -1,7 +1,7 @@
 // Test script for Context7 MCP Server
 // Run with: node test-mcp.js
 
-const API_URL = 'http://localhost:3000/mcp';
+const API_URL = 'http://localhost:8080/mcp';
 
 async function testMCP() {
     console.log('🧪 Testing Context7 MCP Server\n');

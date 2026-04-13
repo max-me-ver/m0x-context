@@ -96,7 +96,7 @@ pnpm build
 
 **HTTP Mode:**
 ```bash
-node packages/mcp/dist/index.js --transport http --port 3000
+node packages/mcp/dist/index.js --transport http --port 8080
 ```
 
 **stdio Mode (for direct MCP integration):**
@@ -129,7 +129,7 @@ Add to your LM Studio MCP configuration:
 {
   "mcpServers": {
     "m0x-context": {
-      "url": "http://localhost:3000/mcp"
+      "url": "http://localhost:8080/mcp"
     }
   }
 }
@@ -255,64 +255,25 @@ Always use Context7 when I need library/API documentation, code generation, setu
 
 ---
 
-## Deploy to Railway
+## Deploy (Docker)
 
-Deploy m0x-context to Railway for unlimited cloud access!
+See **[HOSTING.md](./HOSTING.md)** for building and running with Docker or Docker Compose (local or any cloud that supports containers).
 
-### Quick Deploy
+**Quick start:**
 
-[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app )
-
-### Manual Deployment
-
-1. **Fork/Clone this repository**
-
-2. **Create a new Railway project**
 ```bash
-railway login
-railway init
+docker compose up --build
 ```
 
-3. **Set environment variables** (Optional - for higher rate limits)
+Then open `http://localhost:8080/mcp` from your MCP client, or expose the same image on a VPS / PaaS with **Dockerfile** build.
 
-**Single API Key:**
+Set `CONTEXT7_API_KEY` or comma-separated `CONTEXT7_API_KEYS` in the environment for higher limits and automatic rotation when a key hits rate limits.
+
+**Smoke test after deploy:**
+
 ```bash
-railway variables set CONTEXT7_API_KEY=your_key_here
+node test-http-mcp.js https://your-public-host.example.com
 ```
-
-**Multiple API Keys (Recommended for "unlimited" usage):**
-```bash
-railway variables set CONTEXT7_API_KEYS=key1,key2,key3,key4,key5
-```
-
-> **Pro Tip:** Create multiple free Context7 accounts and use all their API keys for automatic rotation!
-
-4. **Deploy**
-```bash
-railway up
-```
-
-5. **Connect from your AI assistant**
-
-Use the Railway URL in your MCP configuration:
-```json
-{
-  "mcpServers": {
-    "m0x-context": {
-      "url": "https://your-app.up.railway.app/mcp"
-    }
-  }
-}
-```
-
-### API Key Rotation
-
-The server automatically rotates through multiple API keys when one gets rate-limited (429 error). This gives you effectively unlimited usage with free accounts!
-
-**How it works:**
-- Automatically switches to the next key on rate limit
-- Retries failed requests with different keys
-- Resets failed keys after 1 hour cooldown
 
 ---
 
@@ -336,7 +297,7 @@ The server automatically rotates through multiple API keys when one gets rate-li
 
 **`--port <number>`**
 - Port for HTTP transport
-- Default: `3000`
+- Default: `8080`
 
 **`--api-key <key>`**
 - API key for authentication (stdio mode only)

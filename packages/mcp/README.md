@@ -834,7 +834,7 @@ If you prefer to run the MCP server in a Docker container:
    RUN npm install -g @upstash/context7-mcp
 
    # Expose default port if needed (optional, depends on MCP client interaction)
-   # EXPOSE 3000
+   # EXPOSE 8080
 
    # Default command to run the server
    CMD ["context7-mcp"]
@@ -1366,7 +1366,7 @@ bun run dist/index.js
 `context7-mcp` accepts the following CLI flags:
 
 - `--transport <stdio|http>` – Transport to use (`stdio` by default). Use `http` for remote HTTP server or `stdio` for local integration.
-- `--port <number>` – Port to listen on when using `http` transport (default `3000`).
+- `--port <number>` – Port to listen on when using `http` transport (default `8080`).
 - `--api-key <key>` – API key for authentication (or set `CONTEXT7_API_KEY` env var). You can get your API key by creating an account at [context7.com/dashboard](https://context7.com/dashboard).
 
 Example with HTTP transport and port 8080:

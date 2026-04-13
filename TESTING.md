@@ -2,7 +2,7 @@
 
 ## ✅ Server is Running!
 
-Your server should now be running at: `http://localhost:3000/mcp`
+Your server should now be running at: `http://localhost:8080/mcp`
 
 ---
 
@@ -10,7 +10,7 @@ Your server should now be running at: `http://localhost:3000/mcp`
 
 ### 1️⃣ Test Ping (In Browser)
 
-Open in browser: http://localhost:3000/ping
+Open in browser: http://localhost:8080/ping
 
 Should show: `pong`
 
@@ -43,7 +43,7 @@ This will test:
 {
   "mcpServers": {
     "m0x-context-local": {
-      "url": "http://localhost:3000/mcp"
+      "url": "http://localhost:8080/mcp"
     }
   }
 }
@@ -71,7 +71,7 @@ How do I use React useEffect hook? use m0x-context
 {
   "mcpServers": {
     "m0x-context": {
-      "url": "http://localhost:3000/mcp"
+      "url": "http://localhost:8080/mcp"
     }
   }
 }
@@ -88,7 +88,7 @@ How do I use React useEffect hook? use m0x-context
 **In Server Logs:**
 ```
 [m0x-context] Initialized with 4 API key(s) for rotation
-m0x-context Documentation MCP Server v2.1.1 running on HTTP at http://localhost:3000/mcp
+m0x-context Documentation MCP Server v2.1.1 running on HTTP at http://localhost:8080/mcp
 ```
 
 **When API key rotates (on rate limit):**
@@ -108,14 +108,6 @@ m0x-context Documentation MCP Server v2.1.1 running on HTTP at http://localhost:
 
 ---
 
-## 🚀 Next: Deploy to Railway
+## Next: deploy
 
-Once local testing works:
-
-```bash
-railway login
-railway init
-railway up
-```
-
-Then set your custom domain: `mcp.m0x.in`
+Once local testing works, see **[HOSTING.md](./HOSTING.md)** — use `docker compose up --build` or build the root `Dockerfile` on your host.
