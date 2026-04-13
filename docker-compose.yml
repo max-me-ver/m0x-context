@@ -1,3 +1,4 @@
+# Docker Compose only — NOT a Dockerfile. For PaaS (EasyPanel, etc.), point build at ./Dockerfile
 services:
   mcp:
     build: .

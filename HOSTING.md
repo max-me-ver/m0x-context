@@ -1,6 +1,27 @@
 # Hosting m0x-context (Docker)
 
-One **Dockerfile** at the repo root builds and runs the MCP HTTP server. Works the same on your laptop, a VPS, Railway (choose **Dockerfile** as the build method), Fly.io, AWS, etc.
+One **`Dockerfile`** at the repo root builds and runs the MCP HTTP server. Works the same on your laptop, a VPS, Railway (choose **Dockerfile** as the build method), Fly.io, AWS, EasyPanel, etc.
+
+**Important:** Build with **`Dockerfile`**, not `docker-compose.yml`. The compose file is only for `docker compose up` on your machine.
+
+## EasyPanel / panels that ask for a “Dockerfile path”
+
+If the build fails with:
+
+`unknown instruction: services:` (line 1)
+
+then the panel is using **`docker-compose.yml` as the Dockerfile**. That is invalid: Compose files start with `services:`; Dockerfiles use `FROM`, `RUN`, etc.
+
+**Fix in EasyPanel (App from Dockerfile):**
+
+| Setting | Value |
+|--------|--------|
+| Dockerfile path | **`Dockerfile`** (repo root) |
+| Build context | **`.`** (repository root) |
+
+Do **not** set Dockerfile path to `docker-compose.yml`.
+
+If the product has a separate **“Docker Compose”** app type, use that and supply `docker-compose.yml` there instead of a raw `docker build -f docker-compose.yml`.
 
 ## Requirements
 
